@@ -28,17 +28,19 @@ for i in range(0, num_samples):
     folders = file_dirs[i].split('/')
     label = 1 if folders[len(folders) - 2] == 'Occupied' else 0
     Y.append(label)
-
+    X.append(np.flip(f, 0))
+    Y.append(label)
 print("complete reading")
 
+num_samples = len(X)
 X = np.array(X)
 Y = np.array(Y)
-(x_train, y_train) = (X[:num_samples - 150000], Y[:num_samples - 150000])
-(x_test, y_test) = (X[num_samples - 150000:num_samples - 100000], Y[num_samples - 150000:num_samples - 100000])
+(x_train, y_train) = (X[:num_samples - 300000], Y[:num_samples - 300000])
+(x_test, y_test) = (X[num_samples - 300000:num_samples - 200000], Y[num_samples - 300000:num_samples - 200000])
 
 batch_size = 128
 num_classes = 2
-epochs = 11
+epochs = 30
 img_rows, img_cols = 48, 64
 
 y_train = keras.utils.to_categorical(y_train, num_classes)
@@ -95,15 +97,7 @@ print('Test accuracy:', score[1])
 from keras.models import load_model
 model.save('my_model_700k.h5') 
 
-x_val = []
-y_val = []
-for i in range(num_samples - 100000, num_samples):
-    f = misc.imread(file_dirs[i])
-    f = misc.imresize(f, (48, 64))
-    x_val.append(f)
-    folders = file_dirs[i].split('/')
-    label = 1 if folders[len(folders) - 2] == 'Occupied' else 0
-    y_val.append(label)
+x_val, y_val = (X[num_samples - 200000:], Y[num_samples - 200000:])
 x_val = np.array(x_val)
 y_val = np.array(y_val)
 x_val = x_val.astype('float32')

@@ -19,7 +19,7 @@ def four_point_transform(image, pts):
 	heightB = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
 	maxHeight = max(int(heightA), int(heightB))
 
-	print maxWidth, maxHeight
+	#print maxWidth, maxHeight
 
 	dst = np.array([
 		[0, 0],

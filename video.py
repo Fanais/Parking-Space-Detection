@@ -7,7 +7,7 @@ from keras.models import load_model
 li = []
 lis = []
 cap = cv2.VideoCapture('vietdv.mp4')
-model = load_model('my_model_700k.h5')
+model = load_model('my_model_1m.h5')
 
 def draw(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONUP:
@@ -34,7 +34,8 @@ def predict(img):
     x_val = np.array([img])
     x_val = x_val.astype('float32')
     x_val /= 255
-    prediction = np.round(model.predict(x_val))
+    y_val = model.predict(x_val)
+    prediction = np.round(y_val)
     return 1 if prediction[0][1] else 0
     
 while (cap.isOpened()):
