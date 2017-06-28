@@ -9,10 +9,10 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
-
+from keras.preprocessing.image import ImageDataGenerator
 
 file_dirs = []
-for root, dirs, files in os.walk("/data/vietdv/PKLot/PKLotSegmented", topdown=False):
+for root, dirs, files in os.walk("/data/vietdv/PKLot/PKLotSegmented/UFPR04", topdown=False):
     for name in files:
         file_dirs.append(os.path.join(root, name))
 
@@ -28,19 +28,16 @@ for i in range(0, num_samples):
     folders = file_dirs[i].split('/')
     label = 1 if folders[len(folders) - 2] == 'Occupied' else 0
     Y.append(label)
-    X.append(np.flip(f, 0))
-    Y.append(label)
 print("complete reading")
 
-num_samples = len(X)
 X = np.array(X)
 Y = np.array(Y)
-(x_train, y_train) = (X[:num_samples - 300000], Y[:num_samples - 300000])
-(x_test, y_test) = (X[num_samples - 300000:num_samples - 200000], Y[num_samples - 300000:num_samples - 200000])
+(x_train, y_train) = (X[:num_samples - 20000], Y[:num_samples - 20000])
+(x_test, y_test) = (X[num_samples - 20000:num_samples - 10000], Y[num_samples - 20000:num_samples - 10000])
 
 batch_size = 128
 num_classes = 2
-epochs = 30
+epochs = 11
 img_rows, img_cols = 48, 64
 
 y_train = keras.utils.to_categorical(y_train, num_classes)
@@ -84,20 +81,29 @@ model.add(Dense(2, activation='softmax'))
 model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adadelta(),
               metrics=['accuracy'])
-
-model.fit(x_train, y_train,
-          batch_size=batch_size,
-          epochs=epochs,
-          verbose=1,
-          validation_data=(x_test, y_test))
+datagen = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    rotation_range=180,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    horizontal_flip=True,
+    vertical_flip=True
+)
+datagen.fit(x_train)
+model.fit_generator(datagen.flow(x_train, y_train,
+                                     batch_size=batch_size),
+                        steps_per_epoch=x_train.shape[0],
+                        epochs=epochs,
+                        validation_data=(x_test, y_test))
 score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
 from keras.models import load_model
-model.save('my_model_700k.h5') 
+model.save('my_model_UFPR04.h5') 
 
-x_val, y_val = (X[num_samples - 200000:], Y[num_samples - 200000:])
+x_val, y_val = (X[num_samples - 10000:], Y[num_samples - 10000:])
 x_val = np.array(x_val)
 y_val = np.array(y_val)
 x_val = x_val.astype('float32')
