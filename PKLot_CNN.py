@@ -10,7 +10,6 @@ from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.preprocessing.image import ImageDataGenerator
-from keras.models import load_model
 
 file_dirs = []
 for root, dirs, files in os.walk("/data/vietdv/PKLot/PKLotSegmented/UFPR04", topdown=False):
@@ -22,6 +21,33 @@ random.shuffle(file_dirs)
 num_samples = len(file_dirs)
 X = []
 Y = []
+
+for root, dirs, files in os.walk("/data/vietdv/OwnCollection/non-vehicles", topdown=False):
+    for name in files:
+        dire = os.path.join(root, name)
+        f = misc.imread(dire)
+        f = misc.imresize(f, (48, 64))
+        X.append(f)
+        Y.append(0)
+
+for root, dirs, files in os.walk("/data/vietdv/OwnCollection/vehicles", topdown=False):
+    for name in files:
+        dire = os.path.join(root, name)
+        f = misc.imread(dire)
+        f = misc.imresize(f, (48, 64))
+        X.append(f)
+        Y.append(1)
+
+for root, dirs, files in os.walk("/data/vietdv/cars_train", topdown=False):
+    for name in files:
+        dire = os.path.join(root, name)
+        f = misc.imread(dire)
+        if (f.ndim == 2):
+            continue
+        f = misc.imresize(f, (48, 64))
+        X.append(f)
+        Y.append(1)
+
 for i in range(0, num_samples):
     f = misc.imread(file_dirs[i])
     f = misc.imresize(f, (48, 64))
@@ -29,27 +55,50 @@ for i in range(0, num_samples):
     folders = file_dirs[i].split('/')
     label = 1 if folders[len(folders) - 2] == 'Occupied' else 0
     Y.append(label)
-print("complete reading")
 
+for root, dirs, files in os.walk("/data/vietdv/cars_test", topdown=False):
+    for name in files:
+        dire = os.path.join(root, name)
+        f = misc.imread(dire)
+        if (f.ndim == 2):
+            continue
+        f = misc.imresize(f, (48, 64))
+        X.append(f)
+        Y.append(1)
+print("complete reading")
+num_samples = np.shape(X)[0]
 X = np.array(X)
 Y = np.array(Y)
-(x_train, y_train) = (X[:num_samples - 20000], Y[:num_samples - 20000])
-(x_test, y_test) = (X[num_samples - 20000:num_samples -
-                      10000], Y[num_samples - 20000:num_samples - 10000])
+num_validate = 10000
+num_test = 10000
+num_val_test = num_validate + num_test
+(x_train, y_train) = (X[:num_samples - num_val_test], Y[:num_samples - num_val_test])
+(x_test, y_test) = (X[num_samples - num_val_test:num_samples - num_test],
+                    Y[num_samples - num_val_test:num_samples - num_test])
 
-batch_size = 128
+batch_size = 512
 num_classes = 2
-epochs = 11
+epochs = 20
 img_rows, img_cols = 48, 64
 
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
-x_train = x_train.astype('float32')
-x_test = x_test.astype('float32')
-x_train /= 255
+x_train = x_train.astype('float64')
+x_test = x_test.astype('float64')
+pk = np.reshape(x_train, (-1, 3))
+mean = np.mean(pk, 0)
+std = np.std(pk, 0)
+del pk
+x_test -= mean
+x_test /= (std + 1e-9)
+x_train -= mean
+x_train /= (std + 1e-9)
 x_test /= 255
-
+x_train /= 255
+print('mean and standard deviation:')
+print(mean)
+print(std)
 if keras.backend.image_data_format() == 'channels_first':
     input_shape = (3, img_rows, img_cols)
 else:
@@ -83,32 +132,23 @@ model.add(Dense(2, activation='softmax'))
 model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adadelta(),
               metrics=['accuracy'])
-datagen = ImageDataGenerator(
-    featurewise_center=True,
-    featurewise_std_normalization=True,
-    rotation_range=180,
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    horizontal_flip=True,
-    vertical_flip=True
-)
-datagen.fit(x_train)
-model.fit_generator(datagen.flow(x_train, y_train,
-                                 batch_size=batch_size),
-                    steps_per_epoch=x_train.shape[0],
-                    epochs=epochs,
-                    validation_data=(x_test, y_test))
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          verbose=2,
+          validation_data=(x_test, y_test))
 score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
+from keras.models import load_model
+model.save('PKLot2.h5')
 
-model.save('my_model_UFPR04.h5')
-
-x_val, y_val = (X[num_samples - 10000:], Y[num_samples - 10000:])
+x_val, y_val = (X[num_samples - num_test:], Y[num_samples - num_test:])
 x_val = np.array(x_val)
 y_val = np.array(y_val)
-x_val = x_val.astype('float32')
+x_val = x_val.astype('float64')
+x_val = (x_val - mean) / (std + 1e-9)
 x_val /= 255
 prediction = model.predict(x_val)
 y_val = keras.utils.to_categorical(y_val, num_classes)
