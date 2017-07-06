@@ -10,6 +10,7 @@ from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.preprocessing.image import ImageDataGenerator
+from keras.models import load_model
 
 file_dirs = []
 for root, dirs, files in os.walk("/data/vietdv/PKLot/PKLotSegmented/UFPR04", topdown=False):
@@ -33,7 +34,8 @@ print("complete reading")
 X = np.array(X)
 Y = np.array(Y)
 (x_train, y_train) = (X[:num_samples - 20000], Y[:num_samples - 20000])
-(x_test, y_test) = (X[num_samples - 20000:num_samples - 10000], Y[num_samples - 20000:num_samples - 10000])
+(x_test, y_test) = (X[num_samples - 20000:num_samples -
+                      10000], Y[num_samples - 20000:num_samples - 10000])
 
 batch_size = 128
 num_classes = 2
@@ -92,16 +94,16 @@ datagen = ImageDataGenerator(
 )
 datagen.fit(x_train)
 model.fit_generator(datagen.flow(x_train, y_train,
-                                     batch_size=batch_size),
-                        steps_per_epoch=x_train.shape[0],
-                        epochs=epochs,
-                        validation_data=(x_test, y_test))
+                                 batch_size=batch_size),
+                    steps_per_epoch=x_train.shape[0],
+                    epochs=epochs,
+                    validation_data=(x_test, y_test))
 score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-from keras.models import load_model
-model.save('my_model_UFPR04.h5') 
+
+model.save('my_model_UFPR04.h5')
 
 x_val, y_val = (X[num_samples - 10000:], Y[num_samples - 10000:])
 x_val = np.array(x_val)
