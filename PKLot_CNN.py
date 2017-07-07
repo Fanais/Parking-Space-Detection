@@ -11,9 +11,10 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import load_model
+from keras.constraints import maxnorm
 
 file_dirs = []
-for root, dirs, files in os.walk("/data/vietdv/PKLot/PKLotSegmented/UFPR04", topdown=False):
+for root, dirs, files in os.walk("/data/vietdv/PKLot/PKLotSegmented", topdown=False):
     for name in files:
         file_dirs.append(os.path.join(root, name))
 
@@ -33,8 +34,8 @@ for i in range(0, num_samples):
 
 X = np.array(X)
 Y = np.array(Y)
-num_validate = 10000
-num_test = 10000
+num_validate = 50000
+num_test = 100000
 num_val_test = num_validate + num_test
 (x_train, y_train) = (X[:num_samples - num_val_test], Y[:num_samples - num_val_test])
 (x_test, y_test) = (X[num_samples - num_val_test:num_samples - num_test],
@@ -67,33 +68,36 @@ if keras.backend.image_data_format() == 'channels_first':
     input_shape = (3, img_rows, img_cols)
 else:
     input_shape = (img_rows, img_cols, 3)
-
+p = 0.3
 model = Sequential()
 model.add(Conv2D(10, kernel_size=(5, 5),
                  activation='relu',
+                 kernel_constraint=maxnorm(2),
                  input_shape=input_shape))
-model.add(Dropout(0.5))
+model.add(Dropout(0.2))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(20, kernel_size=(5, 5),
                  activation='relu',
+                 kernel_constraint=maxnorm(2),
                  input_shape=input_shape))
-model.add(Dropout(0.5))
+model.add(Dropout(p))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(30, kernel_size=(5, 5),
                  activation='relu',
+                 kernel_constraint=maxnorm(2),
                  input_shape=input_shape))
-model.add(Dropout(0.5))
+model.add(Dropout(p))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Flatten())
-model.add(Dense(30, activation='relu'))
-model.add(Dropout(0.5))
-model.add(Dense(20, activation='relu'))
-model.add(Dropout(0.5))
-model.add(Dense(10, activation='relu'))
-model.add(Dropout(0.5))
+model.add(Dense(30, activation='relu', kernel_constraint=maxnorm(2)))
+model.add(Dropout(p))
+model.add(Dense(20, activation='relu', kernel_constraint=maxnorm(2)))
+model.add(Dropout(p))
+model.add(Dense(10, activation='relu', kernel_constraint=maxnorm(2)))
+model.add(Dropout(p))
 model.add(Dense(2, activation='softmax'))
 
 model.compile(loss=keras.losses.categorical_crossentropy,
@@ -108,7 +112,7 @@ score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-model.save('PKLot_U.h5')
+model.save('PKLot.h5')
 
 x_val, y_val = (X[num_samples - num_test:], Y[num_samples - num_test:])
 x_val = np.array(x_val)

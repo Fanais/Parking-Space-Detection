@@ -7,9 +7,11 @@ from keras.models import load_model
 li = []
 lis = []
 cap = cv2.VideoCapture('vietdv.mp4')
-model = load_model('PKLot.h5')
-mean = np.array([166.94444675, 166.41428723, 161.34182858])
-std = np.array([51.8164944, 50.8152862, 49.60014832])
+model = load_model('PKLot_V.h5')
+# mean = np.array([166.95719972, 166.4651756, 161.39754563])
+# std = np.array([51.85200214, 50.85509469, 49.63896689])
+mean = np.array([166.843922, 166.31826174, 161.24557455])
+std = np.array([51.83049202, 50.84292846, 49.62470782])
 
 
 def draw(event, x, y, flags, param):
