@@ -10,6 +10,7 @@ from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.preprocessing.image import ImageDataGenerator
+from keras.models import load_model
 
 file_dirs = []
 for root, dirs, files in os.walk("/data/vietdv/PKLot/PKLotSegmented/UFPR04", topdown=False):
@@ -22,51 +23,14 @@ num_samples = len(file_dirs)
 X = []
 Y = []
 
-for root, dirs, files in os.walk("/data/vietdv/OwnCollection/non-vehicles", topdown=False):
-    for name in files:
-        dire = os.path.join(root, name)
-        f = misc.imread(dire)
-        f = misc.imresize(f, (48, 64))
-        X.append(f)
-        Y.append(0)
-
-for root, dirs, files in os.walk("/data/vietdv/OwnCollection/vehicles", topdown=False):
-    for name in files:
-        dire = os.path.join(root, name)
-        f = misc.imread(dire)
-        f = misc.imresize(f, (48, 64))
-        X.append(f)
-        Y.append(1)
-
-for root, dirs, files in os.walk("/data/vietdv/cars_train", topdown=False):
-    for name in files:
-        dire = os.path.join(root, name)
-        f = misc.imread(dire)
-        if (f.ndim == 2):
-            continue
-        f = misc.imresize(f, (48, 64))
-        X.append(f)
-        Y.append(1)
-
 for i in range(0, num_samples):
     f = misc.imread(file_dirs[i])
     f = misc.imresize(f, (48, 64))
     X.append(f)
     folders = file_dirs[i].split('/')
-    label = 1 if folders[len(folders) - 2] == 'Occupied' else 0
+    label = 0 if folders[len(folders) - 2] == 'Occupied' else 1
     Y.append(label)
 
-for root, dirs, files in os.walk("/data/vietdv/cars_test", topdown=False):
-    for name in files:
-        dire = os.path.join(root, name)
-        f = misc.imread(dire)
-        if (f.ndim == 2):
-            continue
-        f = misc.imresize(f, (48, 64))
-        X.append(f)
-        Y.append(1)
-print("complete reading")
-num_samples = np.shape(X)[0]
 X = np.array(X)
 Y = np.array(Y)
 num_validate = 10000
@@ -76,9 +40,9 @@ num_val_test = num_validate + num_test
 (x_test, y_test) = (X[num_samples - num_val_test:num_samples - num_test],
                     Y[num_samples - num_val_test:num_samples - num_test])
 
-batch_size = 512
+batch_size = 256
 num_classes = 2
-epochs = 20
+epochs = 11
 img_rows, img_cols = 48, 64
 
 y_train = keras.utils.to_categorical(y_train, num_classes)
@@ -108,29 +72,32 @@ model = Sequential()
 model.add(Conv2D(10, kernel_size=(5, 5),
                  activation='relu',
                  input_shape=input_shape))
-model.add(BatchNormalization())
+model.add(Dropout(0.5))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(20, kernel_size=(5, 5),
                  activation='relu',
                  input_shape=input_shape))
-model.add(BatchNormalization())
+model.add(Dropout(0.5))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(30, kernel_size=(5, 5),
                  activation='relu',
                  input_shape=input_shape))
-model.add(BatchNormalization())
+model.add(Dropout(0.5))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Flatten())
 model.add(Dense(30, activation='relu'))
+model.add(Dropout(0.5))
 model.add(Dense(20, activation='relu'))
+model.add(Dropout(0.5))
 model.add(Dense(10, activation='relu'))
+model.add(Dropout(0.5))
 model.add(Dense(2, activation='softmax'))
 
 model.compile(loss=keras.losses.categorical_crossentropy,
-              optimizer=keras.optimizers.Adadelta(),
+              optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 model.fit(x_train, y_train,
           batch_size=batch_size,
@@ -141,8 +108,7 @@ score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-from keras.models import load_model
-model.save('PKLot2.h5')
+model.save('PKLot_U.h5')
 
 x_val, y_val = (X[num_samples - num_test:], Y[num_samples - num_test:])
 x_val = np.array(x_val)

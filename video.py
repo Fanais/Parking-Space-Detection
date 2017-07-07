@@ -7,9 +7,9 @@ from keras.models import load_model
 li = []
 lis = []
 cap = cv2.VideoCapture('vietdv.mp4')
-model = load_model('PKLot2.h5')
-mean = np.array([157.66291933, 157.47270681, 152.59859154])
-std = np.array([58.16829435, 56.82239574, 55.88269419])
+model = load_model('PKLot.h5')
+mean = np.array([166.94444675, 166.41428723, 161.34182858])
+std = np.array([51.8164944, 50.8152862, 49.60014832])
 
 
 def draw(event, x, y, flags, param):
@@ -55,7 +55,7 @@ while (cap.isOpened()):
         cv2.imshow("Warped", warped)
         warped = cv2.resize(warped, (64, 48))
         col = predict(warped)
-        if col == 0:
+        if col == 1:
             cv2.polylines(frame, [pts], True, (0, 255, 0))
             # print warped
             # print u
