@@ -12,6 +12,8 @@ model = load_model('PKLot_V.h5')
 # std = np.array([51.85200214, 50.85509469, 49.63896689])
 mean = np.array([166.843922, 166.31826174, 161.24557455])
 std = np.array([51.83049202, 50.84292846, 49.62470782])
+# mean = np.array([142.7435437, 141.75742675, 134.94970735])
+# std = np.array([57.89781862, 56.52802884, 57.24394328])
 
 
 def draw(event, x, y, flags, param):
@@ -43,7 +45,7 @@ if (cap.isOpened()):
             pts = np.array(li, np.int32)
             cv2.polylines(frame, [pts], True, (0, 255, 255))
             li = []
-            print 'press space'
+            print('press space')
         if k == ord('q'):
             break
 

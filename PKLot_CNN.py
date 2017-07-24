@@ -14,7 +14,7 @@ from keras.models import load_model
 from keras.constraints import maxnorm
 
 file_dirs = []
-for root, dirs, files in os.walk("/data/vietdv/PKLot/PKLotSegmented", topdown=False):
+for root, dirs, files in os.walk("/data/vietdv/PKLot/PKLotSegmented/UFPR05", topdown=False):
     for name in files:
         file_dirs.append(os.path.join(root, name))
 
@@ -34,8 +34,8 @@ for i in range(0, num_samples):
 
 X = np.array(X)
 Y = np.array(Y)
-num_validate = 50000
-num_test = 100000
+num_validate = 10000
+num_test = 10000
 num_val_test = num_validate + num_test
 (x_train, y_train) = (X[:num_samples - num_val_test], Y[:num_samples - num_val_test])
 (x_test, y_test) = (X[num_samples - num_val_test:num_samples - num_test],
@@ -43,7 +43,7 @@ num_val_test = num_validate + num_test
 
 batch_size = 256
 num_classes = 2
-epochs = 11
+epochs = 100
 img_rows, img_cols = 48, 64
 
 y_train = keras.utils.to_categorical(y_train, num_classes)
@@ -68,19 +68,21 @@ if keras.backend.image_data_format() == 'channels_first':
     input_shape = (3, img_rows, img_cols)
 else:
     input_shape = (img_rows, img_cols, 3)
-p = 0.3
+p = 0.5
 model = Sequential()
 model.add(Conv2D(10, kernel_size=(5, 5),
                  activation='relu',
                  kernel_constraint=maxnorm(2),
                  input_shape=input_shape))
-model.add(Dropout(0.2))
+model.add(BatchNormalization())
+model.add(Dropout(p))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(20, kernel_size=(5, 5),
                  activation='relu',
                  kernel_constraint=maxnorm(2),
                  input_shape=input_shape))
+model.add(BatchNormalization())
 model.add(Dropout(p))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
@@ -88,6 +90,7 @@ model.add(Conv2D(30, kernel_size=(5, 5),
                  activation='relu',
                  kernel_constraint=maxnorm(2),
                  input_shape=input_shape))
+model.add(BatchNormalization())
 model.add(Dropout(p))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
@@ -103,16 +106,27 @@ model.add(Dense(2, activation='softmax'))
 model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
-model.fit(x_train, y_train,
-          batch_size=batch_size,
-          epochs=epochs,
-          verbose=2,
-          validation_data=(x_test, y_test))
+
+datagen = ImageDataGenerator(
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    vertical_flip=True,
+    rotation_range=40
+)
+
+model.fit_generator(datagen.flow(x_train, y_train,
+                                 batch_size=batch_size),
+                    steps_per_epoch=x_train.shape[0] // batch_size,
+                    epochs=epochs,
+                    verbose=2,
+                    validation_data=(x_test, y_test))
 score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-model.save('PKLot.h5')
+model.save('PKLot_G.h5')
 
 x_val, y_val = (X[num_samples - num_test:], Y[num_samples - num_test:])
 x_val = np.array(x_val)
