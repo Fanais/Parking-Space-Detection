@@ -35,7 +35,7 @@ for i in range(0, num_samples):
 X = np.array(X)
 Y = np.array(Y)
 num_validate = 10000
-num_test = 10000
+num_test = 200
 num_val_test = num_validate + num_test
 (x_train, y_train) = (X[:num_samples - num_val_test], Y[:num_samples - num_val_test])
 (x_test, y_test) = (X[num_samples - num_val_test:num_samples - num_test],
@@ -51,28 +51,15 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 
 x_train = x_train.astype('float64')
 x_test = x_test.astype('float64')
-pk = np.reshape(x_train, (-1, 3))
-mean = np.mean(pk, 0)
-std = np.std(pk, 0)
-del pk
-x_test -= mean
-x_test /= (std + 1e-9)
-x_train -= mean
-x_train /= (std + 1e-9)
-x_test /= 255
-x_train /= 255
-print('mean and standard deviation:')
-print(mean)
-print(std)
+
 if keras.backend.image_data_format() == 'channels_first':
     input_shape = (3, img_rows, img_cols)
 else:
     input_shape = (img_rows, img_cols, 3)
-p = 0.5
+p = 0.35
 model = Sequential()
 model.add(Conv2D(10, kernel_size=(5, 5),
                  activation='relu',
-                 kernel_constraint=maxnorm(2),
                  input_shape=input_shape))
 model.add(BatchNormalization())
 model.add(Dropout(p))
@@ -80,7 +67,6 @@ model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(20, kernel_size=(5, 5),
                  activation='relu',
-                 kernel_constraint=maxnorm(2),
                  input_shape=input_shape))
 model.add(BatchNormalization())
 model.add(Dropout(p))
@@ -88,18 +74,17 @@ model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Conv2D(30, kernel_size=(5, 5),
                  activation='relu',
-                 kernel_constraint=maxnorm(2),
                  input_shape=input_shape))
 model.add(BatchNormalization())
 model.add(Dropout(p))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
 model.add(Flatten())
-model.add(Dense(30, activation='relu', kernel_constraint=maxnorm(2)))
+model.add(Dense(30, activation='relu'))
 model.add(Dropout(p))
-model.add(Dense(20, activation='relu', kernel_constraint=maxnorm(2)))
+model.add(Dense(20, activation='relu'))
 model.add(Dropout(p))
-model.add(Dense(10, activation='relu', kernel_constraint=maxnorm(2)))
+model.add(Dense(10, activation='relu'))
 model.add(Dropout(p))
 model.add(Dense(2, activation='softmax'))
 
@@ -107,7 +92,8 @@ model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 
-datagen = ImageDataGenerator(
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
     width_shift_range=0.2,
     height_shift_range=0.2,
     zoom_range=0.2,
@@ -115,9 +101,9 @@ datagen = ImageDataGenerator(
     vertical_flip=True,
     rotation_range=40
 )
-
-model.fit_generator(datagen.flow(x_train, y_train,
-                                 batch_size=batch_size),
+x_test /= 255
+model.fit_generator(train_datagen.flow(x_train, y_train,
+                                       batch_size=batch_size),
                     steps_per_epoch=x_train.shape[0] // batch_size,
                     epochs=epochs,
                     verbose=2,
@@ -126,8 +112,9 @@ score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-model.save('PKLot_G.h5')
+model.save('PKLot.h5')
 
+'''
 x_val, y_val = (X[num_samples - num_test:], Y[num_samples - num_test:])
 x_val = np.array(x_val)
 y_val = np.array(y_val)
@@ -138,3 +125,4 @@ prediction = model.predict(x_val)
 y_val = keras.utils.to_categorical(y_val, num_classes)
 acc_val = np.mean(np.round(prediction) == y_val)
 print(acc_val)
+'''
