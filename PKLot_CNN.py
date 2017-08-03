@@ -35,7 +35,7 @@ for i in range(0, num_samples):
 X = np.array(X)
 Y = np.array(Y)
 num_validate = 10000
-num_test = 200
+num_test = 0
 num_val_test = num_validate + num_test
 (x_train, y_train) = (X[:num_samples - num_val_test], Y[:num_samples - num_val_test])
 (x_test, y_test) = (X[num_samples - num_val_test:num_samples - num_test],
@@ -43,7 +43,7 @@ num_val_test = num_validate + num_test
 
 batch_size = 256
 num_classes = 2
-epochs = 100
+epochs = 10
 img_rows, img_cols = 48, 64
 
 y_train = keras.utils.to_categorical(y_train, num_classes)
@@ -56,7 +56,7 @@ if keras.backend.image_data_format() == 'channels_first':
     input_shape = (3, img_rows, img_cols)
 else:
     input_shape = (img_rows, img_cols, 3)
-p = 0.35
+p = 0.5
 model = Sequential()
 model.add(Conv2D(10, kernel_size=(5, 5),
                  activation='relu',
@@ -99,7 +99,8 @@ train_datagen = ImageDataGenerator(
     zoom_range=0.2,
     horizontal_flip=True,
     vertical_flip=True,
-    rotation_range=40
+    rotation_range=180,
+    channel_shift_range=0.3
 )
 x_test /= 255
 model.fit_generator(train_datagen.flow(x_train, y_train,
